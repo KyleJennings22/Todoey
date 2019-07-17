@@ -10,7 +10,8 @@ import UIKit
 import RealmSwift
 
 
-class CategoryTableViewController: UITableViewController {
+
+class CategoryTableViewController: SwipeTableViewController {
 
     //Variables
     
@@ -19,27 +20,31 @@ class CategoryTableViewController: UITableViewController {
     
     var categories : Results<Category>?
     
+    //MARK: - View Did Load
     override func viewDidLoad() {
         super.viewDidLoad()
         
         print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
-        
         
         loadCategories()
         
         self.tableView.reloadData()
     }
     
+    //MARK: - Table Functions
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return categories?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "categoryCell", for: indexPath)
-        
-        
-        
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         cell.textLabel?.text = categories?[indexPath.row].name ?? "No Categories Added Yet"
+        
+        if let cellColor = categories?[indexPath.row].color {
+            cell.backgroundColor = UIColor(hexString: cellColor)
+        } else {
+            cell.backgroundColor = UIColor(hexString: "1D98F6")
+        }
         
         
         return cell
@@ -49,13 +54,18 @@ class CategoryTableViewController: UITableViewController {
         performSegue(withIdentifier: "goToItems", sender: self)
     }
     
+    
+    //MARK: - Segues
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let destinationVC = segue.destination as! ToDoListViewController
         
         if let indexPath = tableView.indexPathForSelectedRow {
             destinationVC.selectedCategory = categories?[indexPath.row]
+            
         }
     }
+    
+    //MARK: - Add Button
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         
         var textField = UITextField()
@@ -70,7 +80,7 @@ class CategoryTableViewController: UITableViewController {
             let newCategory = Category()
             
             newCategory.name = textField.text!
-            
+            newCategory.color = UIColor.randomFlat.hexValue()
             
             
             self.saveCategory(category: newCategory)
@@ -91,6 +101,7 @@ class CategoryTableViewController: UITableViewController {
         
     }
     
+    //MARK: - Functions
     func saveCategory(category: Category) {
         
         do {
@@ -113,6 +124,18 @@ class CategoryTableViewController: UITableViewController {
         
     }
     
+    override func updateModel(at indexPath: IndexPath) {
+            if let categoryForDeletion = self.categories?[indexPath.row] {
+                do {
+                    try self.realm.write {
+                        self.realm.delete(categoryForDeletion)
+                    }
+
+                } catch {
+                    print("Error deleting category \(error)")
+                }
+            }
+    }
     
     
     
